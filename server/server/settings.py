@@ -45,13 +45,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
 
     # Rest Auth
-    'dj_rest_auth',
-    'dj_rest_auth.registration',
+    #'dj_rest_auth',
+    #'dj_rest_auth.registration',
 
     # Social Auth With AllAuth
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
+    #'allauth',
+    #'allauth.account',
+    #'allauth.socialaccount',
 
     # Local apps
     'accounts',
@@ -71,7 +71,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     # Auth Middleware
-    'allauth.account.middleware.AccountMiddleware',
+    #'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'server.urls'
@@ -148,20 +148,25 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Rest_auth settings
 REST_AUTH = {
-    'LOGIN_SERIALIZER': 'accounts.serializers.CustomLoginSerializer',
+    #'LOGIN_SERIALIZER': 'accounts.serializers.CustomLoginSerializer',
     #'TOKEN_SERIALIZER': 'accounts.serializers.CustomTokenSerializer',  #Esto es por si necesitamos más adelante
-    'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
-    'USER_DETAILS_SERIALIZER': 'accounts.serializers.UsuarioSerializer',
+    #'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
+    #'USER_DETAILS_SERIALIZER': 'accounts.serializers.UsuarioSerializer',
 }
 
 # Rest Framework settings
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+# Simple JWT settings
+SIMPLE_JWT = {
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(weeks=1),
 }
 
 # AllAuth settings
-AUTH_USER_MODEL = 'accounts.Usuario'
-ACCOUNT_EMAIL_VERIFICATION = 'none'
+#AUTH_USER_MODEL = 'accounts.BaseUser'
+#ACCOUNT_EMAIL_VERIFICATION = 'none'
