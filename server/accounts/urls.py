@@ -1,5 +1,4 @@
-from dj_rest_auth.registration.views import RegisterView
-from dj_rest_auth.views import LoginView, LogoutView, UserDetailsView
+from .views import RegisterView, LoginView
 from django.urls import path
 
 urlpatterns = [
@@ -8,8 +7,5 @@ urlpatterns = [
 
     # Login Related
     path('login/', LoginView.as_view(), name='login'), # For login
-    path('logout/', LogoutView.as_view(), name='logout'), # For logout
 
-    # User Related
-    path('user/', UserDetailsView.as_view(), name='user'), # For user details
 ]
