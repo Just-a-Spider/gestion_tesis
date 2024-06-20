@@ -1,12 +1,12 @@
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from .models import PropuestaTesis, Tesis, Observacion
 from .serializers import PropuestaTesisSerializer, TesisSerializer, ObservacionSerializer
-from rest_framework import authentication
 from rest_framework.permissions import IsAuthenticated
+from accounts.authentication import CustomJWTAuthentication
 
 #----------------------GENERAL----------------------
 class GeneralViewList(ListCreateAPIView):
-    authentication_classes = [authentication.TokenAuthentication]
+    authentication_classes = [CustomJWTAuthentication]
 
     def get_permissions(self):
         self.permission_classes = [IsAuthenticated]
@@ -16,7 +16,7 @@ class GeneralViewList(ListCreateAPIView):
         serializer.save(tesista=self.request.user)
     
 class GeneralViewDetail(RetrieveUpdateDestroyAPIView):
-    authentication_classes = [authentication.TokenAuthentication]
+    authentication_classes = [CustomJWTAuthentication]
 
     def get_permissions(self):
         self.permission_classes = [IsAuthenticated]
