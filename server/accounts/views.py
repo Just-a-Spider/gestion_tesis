@@ -1,15 +1,31 @@
-from django.contrib.auth import authenticate, login
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
+from rest_framework.generics import RetrieveAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
 from rest_framework import status
-from .models import Tesista, Profesor, Coordinador, Decana, SecretariaCoord, SecretariaFacultad
-from .serializers import RegisterSerializer, LoginSerializer, UsuarioSerializer, CustomTokenObtainPairSerializer
+from .models import Tesista
+from .serializers import *
 from rest_framework_simplejwt.views import TokenObtainPairView
+from .authentication import CustomJWTAuthentication
+from .constants import role_to_model, serializer_class_map
+from django.utils import timezone
 
 # Custom TokenObtainPairView to include the role in the token
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+class RefreshTokenView(APIView):
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'No se encontró el token de refresco'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = CustomTokenRefreshSerializer(data={'refresh': refresh_token})
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            return Response({'detail': 'Token de refresco no válido'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'access_token': str(serializer.validated_data['access'])})
 
 class RegisterView(APIView):
     serializer_class = RegisterSerializer
@@ -25,7 +41,7 @@ class RegisterView(APIView):
 
         # Check if the user already exists
         if Tesista.objects.filter(code=code).exists():
-            return Response({'detail': 'User already exists'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Usuario ya registrado'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create the user
         user = Tesista(
@@ -37,63 +53,84 @@ class RegisterView(APIView):
         user.set_password(password)
         user.save()
 
-        return Response({'detail': 'Registration successful'}, status=status.HTTP_201_CREATED)
+        return Response({'detail': 'Registro Exitoso'}, status=status.HTTP_201_CREATED)
 
-# Dictionary to map the role to the model
-role_to_model = {
-    'Tesista': Tesista,
-    'Profesor': Profesor,
-    'Coordinador': Coordinador,
-    'SecretariaCoord': SecretariaCoord,
-    'Decana': Decana,
-    'SecretariaFacultad': SecretariaFacultad
-}
+def set_cookie(response, name, value, path):
+    response.set_cookie(
+        name,
+        value,
+        httponly=True,
+        samesite='Strict',
+        secure=True,  # Consider environment to toggle this for development
+        path=path
+    )
+
+def login_success_response(user):
+    refresh = CustomTokenObtainPairSerializer.get_token(user)
+    user.last_login = timezone.now()
+    user.save()
+    response = Response({'detail': 'Login successful'})
+    set_cookie(response, 'refresh_token', str(refresh), '/accounts/refresh')
+    set_cookie(response, 'access_token', str(refresh.access_token), '/')
+    return response
+
+def authenticate_user(user, password):
+    if not user.check_password(password) or not user.is_active:
+        return Response({'detail': 'Credenciales Incorrectas'}, status=status.HTTP_401_UNAUTHORIZED)
+    return login_success_response(user)
+
 
 class LoginView(APIView):
     serializer_class = LoginSerializer
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        code = serializer.validated_data.get('code')
-        password = serializer.validated_data.get('password')
-        role = serializer.validated_data.get('role') or None
-
-        # Determine the model based role provided or not
-        if role is None:
-            Model = role_to_model['tesista']
-        elif role in role_to_model:
-            Model = role_to_model[role]
-        else:
-            return Response({'detail': 'Invalid code length'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Query the correct model
         try:
-            user = Model.objects.get(code=code)
-        except Model.DoesNotExist:
-            return Response({'detail': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            return Response({'detail': 'Datos de entrada no válidos'}, status=status.HTTP_400_BAD_REQUEST)
+        username = serializer.validated_data.get('username')
+        password = serializer.validated_data.get('password')
+        role = serializer.validated_data.get('role')
 
-        # Check the password
-        if user.password_changed:
-            user = authenticate(request=request, code=code, password=password)
+        if role in role_to_model:
+            model = role_to_model[role]
         else:
-            if user.password != password:
-                return Response({'detail': 'Incorrect password'}, status=status.HTTP_401_UNAUTHORIZED)
-            
-        # Check if the user is active
-        if user and user.is_active:
-            refresh = CustomTokenObtainPairSerializer.get_token(user)
+            return Response({'detail': 'Rol no Válido'}, status=status.HTTP_400_BAD_REQUEST)
 
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            })
+        try:
+            user = model.objects.get(username=username)
+            if user.is_email_verified == False:
+                return Response({'detail': 'Email no Verificado'}, status=status.HTTP_401_UNAUTHORIZED)
+        except:
+            return Response({'detail': 'Usuario no Encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if role != 'ciudadano':
+            if user.password == password:
+                return login_success_response(user)
+            else:
+                return Response({'detail': 'Credenciales Incorrectas'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        return Response({'detail': 'Inactive user'}, status=status.HTTP_403_FORBIDDEN)
+        return authenticate_user(user, password)
     
-class MeView(APIView):
-    def get(self, request):
-        if request.user.is_authenticated:
-            serializer = UsuarioSerializer(request.user)
-            return Response(serializer.data)
-        return Response({'detail': 'Not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
+class LogoutView(APIView):
+    def post(self, request):
+        response = Response({'detail': 'Logout successful'})
+        response.delete_cookie('refresh_token')
+        response.delete_cookie('access_token')
+        return response
+
+class MeView(RetrieveAPIView):
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        user = self.request.user
+        user_class_name = user.__class__.__name__
+        return serializer_class_map[user_class_name]
+    
+    def get_object(self):
+        user = self.request.user
+        if not user:
+            raise NotFound('User not found')
+        return user

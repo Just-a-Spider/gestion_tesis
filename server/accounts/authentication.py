@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import *
-from .views import role_to_model
+from .constants import role_to_model
 
 class CustomJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):

@@ -1,0 +1,26 @@
+<nav class="navbar">
+  @if(isAuthenticated) {
+  <div class="sidebar-container">
+    <p-sidebar [(visible)]="sidebarVisible">
+      <h3>{{user?.first_name}} {{user?.last_name}}</h3>
+      <p>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+        veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+        commodo consequat.
+      </p>
+    </p-sidebar>
+    <p-button
+      (click)="sidebarVisible = true"
+      label="Mi Cuenta"
+    />
+  </div>
+  <div class="logout-container">
+    <p-button (click)="logout()" label="Cerrar Sesión" />
+  </div>
+  } @else {
+  <p-button (click)="showLogin = !showLogin">Login</p-button>
+  } @if(showLogin){
+  <form-login />
+  }
+</nav>

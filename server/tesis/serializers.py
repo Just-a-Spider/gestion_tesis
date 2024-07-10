@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from .models import PropuestaTesis, Tesis, Observacion
-from accounts.serializers import UsuarioSerializer
+from accounts.serializers import TesistaSerializer
 
 class PropuestaTesisSerializer(serializers.ModelSerializer):
-    tesista = UsuarioSerializer(read_only=True)
+    tesista = TesistaSerializer(read_only=True)
 
     class Meta:
         model = PropuestaTesis

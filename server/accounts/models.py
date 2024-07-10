@@ -8,13 +8,12 @@ from django.utils.translation import gettext_lazy as _
 #    ('asesor', 'Asesor'),
 #    ('jurado', 'Jurado'),
 #    ('coordinador', 'Coordinador'),
-#    ('sec_coord', 'Secretaria de Coordinacion'),
 #    ('decana', 'Decana'),
-#    ('sec_facultad', 'Secretaria de Facultad'),
 #]
 
 class BaseUser(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
+    password = models.CharField(_('password'), max_length=128)
     code = models.CharField(max_length=12, unique=True)
     email = models.EmailField(unique=True)
     first_name = models.CharField(_("first name"), max_length=30)
@@ -23,13 +22,15 @@ class BaseUser(AbstractBaseUser, PermissionsMixin):
     genero = models.BooleanField(default=True)
     telefono = models.CharField(max_length=9, blank=True, null=True)
     last_login = models.DateTimeField(blank=True, null=True)
-    prog_acad = models.ForeignKey(ProgAcad, on_delete=models.CASCADE, null=True, blank=True)
     is_active = models.BooleanField(default=True)
-    password_changed = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
 
     EMAIL_FIELD = 'email'
     USERNAME_FIELD = 'code'
     REQUIRED_FIELDS = ['first_name', 'last_name']
+
+    def __str__(self):
+        return self.code + ' - ' + self.first_name + ' ' + self.last_name
 
     class Meta:
         verbose_name = _('user')
@@ -57,22 +58,36 @@ class BaseUser(AbstractBaseUser, PermissionsMixin):
     )
 
 class Tesista(BaseUser):
-    pass
+    prog_acad = models.ForeignKey(ProgAcad, on_delete=models.CASCADE, null=True, blank=True)
+    password_changed = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = 'Tesista'
+        verbose_name_plural = 'Tesistas'
 
 class Profesor(BaseUser):
-    pass
+    prog_acad = models.ForeignKey(ProgAcad, on_delete=models.CASCADE, null=True, blank=True)
+    tesis_dirigidas = models.IntegerField(default=0)
+    tesis_juradas = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'Profesor'
+        verbose_name_plural = 'Profesores'
 
 class Coordinador(BaseUser):
-    pass
+    prog_acad = models.ForeignKey(ProgAcad, on_delete=models.CASCADE, null=True, blank=True)
+    
 
-class SecretariaCoord(BaseUser):
-    pass
+    class Meta:
+        verbose_name = 'Coordinador'
+        verbose_name_plural = 'Coordinadores'
 
 class Decana(BaseUser):
     facultad = models.ForeignKey(Facultad, on_delete=models.CASCADE, null=True, blank=True)
 
-class SecretariaFacultad(BaseUser):
-    facultad = models.ForeignKey(Facultad, on_delete=models.CASCADE, null=True, blank=True)
+    class Meta:
+        verbose_name = 'Decano'
+        verbose_name_plural = 'Decanos'
 
 #class Usuario(AbstractUser):
 #    prog_acad = models.ForeignKey(ProgAcad, on_delete=models.CASCADE, null=True, blank=True)

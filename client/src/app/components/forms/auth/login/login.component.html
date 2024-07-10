@@ -1,0 +1,17 @@
+<div class="card flex flex-col justify-content-center">
+  <label for="code">Código</label>
+  <input
+    pInputText
+    id="code"
+    aria-describedby="code-help"
+    [(ngModel)]="loginProps.code"
+  />
+  <label for="password">Contraseña</label>
+  <p-password
+    [(ngModel)]="loginProps.password"
+    [feedback]="false"
+    [toggleMask]="true"
+    id="password"
+  />
+  <button pButton type="button" (click)="login()">Iniciar sesión</button>
+</div>
